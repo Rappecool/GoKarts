@@ -20,6 +20,15 @@ private:
 
 	void MoveForward(float Value);
 
+	//Mass of car in (kg).
+	UPROPERTY(EditAnywhere)
+	float Mass = 1000;
+	UPROPERTY(EditAnywhere)
+	float Throttle;
+	//The force applied to the car when the throttle is fully down. (N)
+	UPROPERTY(EditAnywhere)
+	float MaxDrivingForce = 10000;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
