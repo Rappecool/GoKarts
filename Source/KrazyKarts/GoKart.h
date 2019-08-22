@@ -29,6 +29,8 @@ private:
 	UPROPERTY(EditAnywhere)
 	float MaxDrivingForce = 10000;
 
+	void UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
