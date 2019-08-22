@@ -19,17 +19,24 @@ private:
 	FText SpeedDisplayString;
 
 	void MoveForward(float Value);
+	void MoveRight(float Value);
 
 	//Mass of car in (kg).
 	UPROPERTY(EditAnywhere)
 	float Mass = 1000;
 	UPROPERTY(EditAnywhere)
 	float Throttle;
+	UPROPERTY(EditAnywhere)
+	float SteeringThrow;
 	//The force applied to the car when the throttle is fully down. (N)
 	UPROPERTY(EditAnywhere)
 	float MaxDrivingForce = 10000;
+	
+	UPROPERTY(EditAnywhere)
+	float MaxDegreesPerSecond = 90;
 
 	void UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult);
+	void ApplyRotation(float DeltaTime);
 
 protected:
 	// Called when the game starts or when spawned
@@ -39,6 +46,7 @@ public:
 	AGoKart();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
