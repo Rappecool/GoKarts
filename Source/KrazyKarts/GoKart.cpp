@@ -5,6 +5,7 @@
 #include "Components/InputComponent.h"
 #include "Runtime/Engine/Classes/GameFramework/SpringArmComponent.h"
 #include "Runtime/Engine/Classes/Camera/CameraComponent.h"
+#include "Engine/World.h"
 
 // Sets default values
 AGoKart::AGoKart()
@@ -17,6 +18,9 @@ AGoKart::AGoKart()
 void AGoKart::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//Conversion from UE units(cm) to meters.
+	AccelerationDueToGravity = -GetWorld()->GetDefaultGravityZ() / 100;
 }
 
 // Called every frame
@@ -27,7 +31,7 @@ void AGoKart::Tick(float DeltaTime)
 	FVector ForwardForce = GetActorForwardVector() * MaxDrivingForce * Throttle;
 
 	ForwardForce += GetAirResistance();
-
+	ForwardForce += GetRollResistance();
 	FVector Acceleration = ForwardForce / Mass;
 
 	Velocity += Acceleration * DeltaTime;
@@ -53,6 +57,12 @@ void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)
 FVector AGoKart::GetAirResistance()
 {
 	return -Velocity.GetSafeNormal() * Velocity.SizeSquared() * DragCoefficient;
+}
+
+FVector AGoKart::GetRollResistance()
+{
+	float NormalForce = Mass * AccelerationDueToGravity;
+	return -Velocity.GetSafeNormal() * RollingResistanceCoefficient * NormalForce;
 }
 
 void AGoKart::ApplyRotation(float DeltaTime)

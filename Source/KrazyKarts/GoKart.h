@@ -37,8 +37,14 @@ private:
 	UPROPERTY(EditAnywhere)
 	//Arrived at this value since Airresistance/Speed^2 = DragCoefficient, 10 000/25 = 16.
 	float DragCoefficient = 16;
+	UPROPERTY(EditAnywhere)
+	//Arrived at this value from wikipedia, car tire on concrete.
+	float RollingResistanceCoefficient = 0.015;
+
+	float AccelerationDueToGravity = 0;
 
 	FVector GetAirResistance();
+	FVector GetRollResistance();
 	void UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult);
 	void ApplyRotation(float DeltaTime);
 
