@@ -31,10 +31,14 @@ private:
 	//The force applied to the car when the throttle is fully down. (N)
 	UPROPERTY(EditAnywhere)
 	float MaxDrivingForce = 10000;
-	
 	UPROPERTY(EditAnywhere)
 	float MaxDegreesPerSecond = 90;
+	//Higher means more drag.
+	UPROPERTY(EditAnywhere)
+	//Arrived at this value since Airresistance/Speed^2 = DragCoefficient, 10 000/25 = 16.
+	float DragCoefficient = 16;
 
+	FVector GetAirResistance();
 	void UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult);
 	void ApplyRotation(float DeltaTime);
 
@@ -46,7 +50,6 @@ public:
 	AGoKart();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

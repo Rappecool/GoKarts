@@ -13,6 +13,30 @@ AGoKart::AGoKart()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+// Called when the game starts or when spawned
+void AGoKart::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
+// Called every frame
+void AGoKart::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	FVector ForwardForce = GetActorForwardVector() * MaxDrivingForce * Throttle;
+
+	ForwardForce += GetAirResistance();
+
+	FVector Acceleration = ForwardForce / Mass;
+
+	Velocity += Acceleration * DeltaTime;
+	ApplyRotation(DeltaTime);
+
+	FHitResult HitResult;
+	UpdateLocationFromVelocity(DeltaTime, HitResult);
+}
+
 void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)
 {
 	FVector Translation = Velocity * DeltaTime * 100; //multiplied by 100 to convert to meter from cm.
@@ -25,28 +49,10 @@ void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)
 		Velocity = FVector::ZeroVector;
 	}
 }
-// Called when the game starts or when spawned
-void AGoKart::BeginPlay()
+
+FVector AGoKart::GetAirResistance()
 {
-	Super::BeginPlay();
-}
-
-// Called every frame
-void AGoKart::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-
-	FVector Force = GetActorForwardVector() * MaxDrivingForce * Throttle;
-	FVector Acceleration = Force / Mass;
-
-	Velocity += Acceleration * DeltaTime;
-
-	FHitResult HitResult;
-
-	ApplyRotation(DeltaTime);
-
-	UpdateLocationFromVelocity(DeltaTime, HitResult);
+	return -Velocity.GetSafeNormal() * Velocity.SizeSquared() * DragCoefficient;
 }
 
 void AGoKart::ApplyRotation(float DeltaTime)
