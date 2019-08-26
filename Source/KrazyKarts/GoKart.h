@@ -31,8 +31,9 @@ private:
 	//The force applied to the car when the throttle is fully down. (N)
 	UPROPERTY(EditAnywhere)
 	float MaxDrivingForce = 10000;
+	//Minimum turning radius of our car at full lock(m).
 	UPROPERTY(EditAnywhere)
-	float MaxDegreesPerSecond = 90;
+	float MinTurningRadius = 10;
 	//Higher means more drag.
 	UPROPERTY(EditAnywhere)
 	//Arrived at this value since Airresistance/Speed^2 = DragCoefficient, 10 000/25 = 16.
