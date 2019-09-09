@@ -18,11 +18,13 @@ private:
 	UPROPERTY(Category = Display, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FText SpeedDisplayString;
 
-	UFUNCTION(Server,Reliable,WithValidation)
+	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_MoveForward(float Value);
-	//bool Server_MoveForward_Validation(float Value);
 	UFUNCTION(Server,Reliable,WithValidation)
 	void Server_MoveRight(float Value);
+
+	void MoveForward(float Value);
+	void MoveRight(float Value);
 
 	//Mass of car in (kg).
 	UPROPERTY(EditAnywhere)

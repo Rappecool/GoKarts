@@ -5,6 +5,7 @@
 #include "Components/InputComponent.h"
 #include "Runtime/Engine/Classes/GameFramework/SpringArmComponent.h"
 #include "Runtime/Engine/Classes/Camera/CameraComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 
 // Sets default values
@@ -23,6 +24,23 @@ void AGoKart::BeginPlay()
 	AccelerationDueToGravity = -GetWorld()->GetDefaultGravityZ() / 100;
 }
 
+FString GetEnumText(ENetRole Role)
+{
+	switch (Role)
+	{
+	case ROLE_None:
+		return "None";
+	case ROLE_SimulatedProxy:
+		return "ROLE_SimulatedProxy";
+	case ROLE_AutonomousProxy:
+		return "ROLE_AutonomousProxy";
+	case ROLE_Authority:
+		return "ROLE_Authority";
+	default:
+		return "Error";
+	}
+}
+
 // Called every frame
 void AGoKart::Tick(float DeltaTime)
 {
@@ -39,6 +57,8 @@ void AGoKart::Tick(float DeltaTime)
 
 	FHitResult HitResult;
 	UpdateLocationFromVelocity(DeltaTime, HitResult);
+
+	DrawDebugString(GetWorld(), FVector(0, 0, 100), GetEnumText(Role), this, FColor::White, DeltaTime);
 }
 
 void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)
@@ -52,6 +72,18 @@ void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)
 	{
 		Velocity = FVector::ZeroVector;
 	}
+}
+
+void AGoKart::MoveForward(float Value)
+{
+	Throttle = Value;
+	Server_MoveForward(Value);
+}
+
+void AGoKart::MoveRight(float Value)
+{
+	SteeringThrow = Value;
+	Server_MoveRight(Value);
 }
 
 FVector AGoKart::GetAirResistance()
@@ -81,8 +113,8 @@ void AGoKart::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	PlayerInputComponent->BindAxis("MoveForward", this, &AGoKart::Server_MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &AGoKart::Server_MoveRight);
+	PlayerInputComponent->BindAxis("MoveForward", this, &AGoKart::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &AGoKart::MoveRight);
 }
 
 void AGoKart::Server_MoveForward_Implementation(float Value)
