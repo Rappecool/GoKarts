@@ -12,6 +12,7 @@ class KRAZYKARTS_API AGoKart : public APawn
 	GENERATED_BODY()
 
 private:
+	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedTransform)
 	FVector Velocity;
 
 	/** The current speed as a string eg 10 km/h */
@@ -29,9 +30,9 @@ private:
 	//Mass of car in (kg).
 	UPROPERTY(EditAnywhere)
 	float Mass = 1000;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_ReplicatedTransform)
 	float Throttle;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_ReplicatedTransform)
 	float SteeringThrow;
 	//The force applied to the car when the throttle is fully down. (N)
 	UPROPERTY(EditAnywhere)
@@ -66,7 +67,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedLocation)
+	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedTransform)
 	FTransform ReplicatedTransform;
 
 
