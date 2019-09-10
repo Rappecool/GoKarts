@@ -25,14 +25,19 @@ void AGoKart::BeginPlay()
 
 	//Conversion from UE units(cm) to meters.
 	AccelerationDueToGravity = -GetWorld()->GetDefaultGravityZ() / 100;
+
+	if (HasAuthority())
+	{
+		NetUpdateFrequency = 1;
+	}
+
 }
 
 void AGoKart::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AGoKart, ReplicatedLocation);
-	DOREPLIFETIME(AGoKart, ReplicatedRotation);
+	DOREPLIFETIME(AGoKart, ReplicatedTransform);
 }
 
 FString GetEnumText(ENetRole Role)
@@ -72,16 +77,15 @@ void AGoKart::Tick(float DeltaTime)
 
 	if (HasAuthority())
 	{
-		ReplicatedLocation = GetActorLocation();
-		ReplicatedRotation = GetActorRotation();
-	}
-	else 
-	{
-		SetActorLocation(ReplicatedLocation);
-		SetActorRotation(ReplicatedRotation);
+		ReplicatedTransform = GetActorTransform();
 	}
 
 	DrawDebugString(GetWorld(), FVector(0, 0, 100), GetEnumText(Role), this, FColor::White, DeltaTime);
+}
+
+void AGoKart::OnRep_ReplicatedTransform()
+{
+	SetActorTransform(ReplicatedTransform);
 }
 
 void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)
@@ -130,6 +134,7 @@ void AGoKart::ApplyRotation(float DeltaTime)
 
 	AddActorWorldRotation(RotationDelta, true);
 }
+
 
 // Called to bind functionality to input
 void AGoKart::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
