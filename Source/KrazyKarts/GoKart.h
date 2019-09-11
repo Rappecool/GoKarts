@@ -44,28 +44,26 @@ class KRAZYKARTS_API AGoKart : public APawn
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedTransform)
-	FVector Velocity;
 
 	/** The current speed as a string eg 10 km/h */
 	UPROPERTY(Category = Display, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FText SpeedDisplayString;
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_MoveForward(float Value);
-	UFUNCTION(Server,Reliable,WithValidation)
-	void Server_MoveRight(float Value);
+	void Server_SendMove(FGoKartMove Move);
 
 	void MoveForward(float Value);
 	void MoveRight(float Value);
+
+	FVector Velocity;
 
 	//Mass of car in (kg).
 	UPROPERTY(EditAnywhere)
 	float Mass = 1000;
 
-	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_ReplicatedTransform)
+	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_ServerState)
 	float Throttle;
-	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_ReplicatedTransform)
+	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_ServerState)
 	float SteeringThrow;
 
 	//The force applied to the car when the throttle is fully down. (N)
@@ -89,8 +87,11 @@ private:
 	void UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult);
 	void ApplyRotation(float DeltaTime);
 
+	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
+	FGoKartState ServerState;
+
 	UFUNCTION()
-	void OnRep_ReplicatedTransform();
+	void OnRep_ServerState();
 
 protected:
 	// Called when the game starts or when spawned
@@ -100,10 +101,6 @@ public:
 	AGoKart();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedTransform)
-	FTransform ReplicatedTransform;
-
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

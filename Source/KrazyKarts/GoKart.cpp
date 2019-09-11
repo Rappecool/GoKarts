@@ -37,8 +37,7 @@ void AGoKart::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifeti
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AGoKart, ReplicatedTransform);
-	DOREPLIFETIME(AGoKart, Velocity);
+	DOREPLIFETIME(AGoKart, ServerState);
 	DOREPLIFETIME(AGoKart, Throttle);
 	DOREPLIFETIME(AGoKart, SteeringThrow);
 }
@@ -65,6 +64,17 @@ void AGoKart::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (IsLocallyControlled())
+	{
+		FGoKartMove Move;
+		Move.DeltaTime = DeltaTime;
+		Move.SteeringThrow = SteeringThrow;
+		Move.Throttle = Throttle;
+		//TODO: Set Move.Time;
+		Server_SendMove(Move);
+	}
+
+
 	FVector ForwardForce = GetActorForwardVector() * MaxDrivingForce * Throttle;
 
 	ForwardForce += GetAirResistance();
@@ -80,15 +90,23 @@ void AGoKart::Tick(float DeltaTime)
 
 	if (HasAuthority())
 	{
-		ReplicatedTransform = GetActorTransform();
+		ServerState.Transform = GetActorTransform();
+		ServerState.Velocity = Velocity;
+		//TODO: Add ServerState.LastMove.
+	}
+
+	else
+	{
+
 	}
 
 	DrawDebugString(GetWorld(), FVector(0, 0, 100), GetEnumText(Role), this, FColor::White, DeltaTime);
 }
 
-void AGoKart::OnRep_ReplicatedTransform()
+void AGoKart::OnRep_ServerState()
 {
-	SetActorTransform(ReplicatedTransform);
+	SetActorTransform(ServerState.Transform);
+	Velocity = ServerState.Velocity;
 }
 
 void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)
@@ -107,13 +125,11 @@ void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)
 void AGoKart::MoveForward(float Value)
 {
 	Throttle = Value;
-	Server_MoveForward(Value);
 }
 
 void AGoKart::MoveRight(float Value)
 {
 	SteeringThrow = Value;
-	Server_MoveRight(Value);
 }
 
 FVector AGoKart::GetAirResistance()
@@ -148,23 +164,17 @@ void AGoKart::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("MoveRight", this, &AGoKart::MoveRight);
 }
 
-void AGoKart::Server_MoveForward_Implementation(float Value)
+void AGoKart::Server_SendMove_Implementation(FGoKartMove Move)
 {
-	Throttle = Value;
+	Throttle = Move.Throttle;
+	SteeringThrow = Move.SteeringThrow;
 }
 
-bool AGoKart::Server_MoveForward_Validate(float Value)
+bool AGoKart::Server_SendMove_Validate(FGoKartMove Move)
 {
 	//CLEAN one liner for checking that Value is within range -1 to 1.
-	return FMath::Abs(Value) <= 1;
-}
+	//return FMath::Abs(Value) <= 1;
 
-void AGoKart::Server_MoveRight_Implementation(float Value)
-{
-	SteeringThrow = Value;
-}
-
-bool AGoKart::Server_MoveRight_Validate(float Value)
-{
-	return FMath::Abs(Value) <= 1;
+		//TODO: Make better validation.
+	return true;
 }
