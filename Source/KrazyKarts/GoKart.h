@@ -6,6 +6,38 @@
 #include "GameFramework/Pawn.h"
 #include "GoKart.generated.h"
 
+USTRUCT()
+struct FGoKartMove
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	float Throttle;
+	UPROPERTY()
+	float SteeringThrow;
+
+	UPROPERTY()
+	float DeltaTime;
+
+	UPROPERTY()
+	float Time;
+};
+
+USTRUCT()
+struct FGoKartState
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FTransform Transform;
+
+	UPROPERTY()
+	FVector Velocity;
+
+	UPROPERTY()
+	FGoKartMove LastMove;
+};
+
 UCLASS()
 class KRAZYKARTS_API AGoKart : public APawn
 {
@@ -30,10 +62,12 @@ private:
 	//Mass of car in (kg).
 	UPROPERTY(EditAnywhere)
 	float Mass = 1000;
+
 	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_ReplicatedTransform)
 	float Throttle;
 	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_ReplicatedTransform)
 	float SteeringThrow;
+
 	//The force applied to the car when the throttle is fully down. (N)
 	UPROPERTY(EditAnywhere)
 	float MaxDrivingForce = 10000;
