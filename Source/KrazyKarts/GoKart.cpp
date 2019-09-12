@@ -30,7 +30,6 @@ void AGoKart::BeginPlay()
 	{
 		NetUpdateFrequency = 1;
 	}
-
 }
 
 void AGoKart::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -56,6 +55,31 @@ void AGoKart::SimulateMove(FGoKartMove Move)
 	UpdateLocationFromVelocity(Move.DeltaTime, HitResult);
 }
 
+FGoKartMove AGoKart::CreateMove(float DeltaTime)
+{
+	FGoKartMove Move;
+	Move.DeltaTime = DeltaTime;
+	Move.SteeringThrow = SteeringThrow;
+	Move.Throttle = Throttle;
+	Move.Time = GetWorld()->TimeSeconds;
+
+	return Move;
+}
+
+void AGoKart::ClearAcknowledgedMoves(FGoKartMove LastMove)
+{
+	TArray<FGoKartMove> NewMoves;
+
+	for (const FGoKartMove& Move : UnacknowledgedMoves)
+	{
+		if (Move.Time > LastMove.Time)
+		{
+			NewMoves.Add(Move);
+		}
+	}
+	UnacknowledgedMoves = NewMoves;
+}
+
 FString GetEnumText(ENetRole Role)
 {
 	switch (Role)
@@ -78,21 +102,22 @@ void AGoKart::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+		//If is local player, Create Move Struct to be sent to server AND used for local simulation.
 	if (IsLocallyControlled())
 	{
-		FGoKartMove Move;
-		Move.DeltaTime = DeltaTime;
-		Move.SteeringThrow = SteeringThrow;
-		Move.Throttle = Throttle;
-		//TODO: Set Move.Time;
-		Server_SendMove(Move);
+		FGoKartMove Move = CreateMove(DeltaTime);
 
 		if (!HasAuthority())
 		{
-			SimulateMove(Move);
+			UnacknowledgedMoves.Add(Move);
+			UE_LOG(LogTemp, Warning, TEXT("Queue Length:%d"), UnacknowledgedMoves.Num());
 		}
+			//Moves client on server, client calls Server_SendMove -> Makes RPC to Server_SendMove_Implementation on server. TODO: add HasAuthority?
+		Server_SendMove(Move);
+		
+			//If we're not server, simulate move locally. (As to not simulate move on server twice.)
+		SimulateMove(Move);
 	}
-
 
 	DrawDebugString(GetWorld(), FVector(0, 0, 100), GetEnumText(Role), this, FColor::White, DeltaTime);
 }
@@ -101,6 +126,8 @@ void AGoKart::OnRep_ServerState()
 {
 	SetActorTransform(ServerState.Transform);
 	Velocity = ServerState.Velocity;
+
+	ClearAcknowledgedMoves(ServerState.LastMove);
 }
 
 void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)
@@ -115,6 +142,7 @@ void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)
 		Velocity = FVector::ZeroVector;
 	}
 }
+
 
 void AGoKart::MoveForward(float Value)
 {
@@ -148,7 +176,6 @@ void AGoKart::ApplyRotation(float DeltaTime, float SteeringThrow)
 	AddActorWorldRotation(RotationDelta, true);
 }
 
-
 // Called to bind functionality to input
 void AGoKart::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -163,9 +190,9 @@ void AGoKart::Server_SendMove_Implementation(FGoKartMove Move)
 	SimulateMove(Move);
 
 	ServerState.LastMove = Move;
+
 	ServerState.Transform = GetActorTransform();
 	ServerState.Velocity = Velocity;
-	//TODO: Add ServerState.LastMove.
 }
 
 bool AGoKart::Server_SendMove_Validate(FGoKartMove Move)

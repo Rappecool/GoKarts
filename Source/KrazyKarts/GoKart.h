@@ -44,21 +44,13 @@ class KRAZYKARTS_API AGoKart : public APawn
 	GENERATED_BODY()
 
 private:
-
-	void SimulateMove(FGoKartMove Move);
+	TArray<FGoKartMove> UnacknowledgedMoves;
 
 	/** The current speed as a string eg 10 km/h */
 	UPROPERTY(Category = Display, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FText SpeedDisplayString;
 
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_SendMove(FGoKartMove Move);
-
-	void MoveForward(float Value);
-	void MoveRight(float Value);
-
 	FVector Velocity;
-
 	//Mass of car in (kg).
 	UPROPERTY(EditAnywhere)
 	float Mass = 1000;
@@ -82,16 +74,26 @@ private:
 
 	float AccelerationDueToGravity = 0;
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SendMove(FGoKartMove Move);
+
+	void MoveForward(float Value);
+	void MoveRight(float Value);
+
+	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
+	FGoKartState ServerState;
+
 	FVector GetAirResistance();
 	FVector GetRollResistance();
 	void UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult);
 	void ApplyRotation(float DeltaTime, float SteeringThrow);
 
-	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
-	FGoKartState ServerState;
-
 	UFUNCTION()
 	void OnRep_ServerState();
+
+	void SimulateMove(FGoKartMove Move);
+	FGoKartMove CreateMove(float DeltaTime);
+	void ClearAcknowledgedMoves(FGoKartMove LastMove);
 
 protected:
 	// Called when the game starts or when spawned
