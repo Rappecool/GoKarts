@@ -45,6 +45,8 @@ class KRAZYKARTS_API AGoKart : public APawn
 
 private:
 
+	void SimulateMove(FGoKartMove Move);
+
 	/** The current speed as a string eg 10 km/h */
 	UPROPERTY(Category = Display, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FText SpeedDisplayString;
@@ -61,9 +63,7 @@ private:
 	UPROPERTY(EditAnywhere)
 	float Mass = 1000;
 
-	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_ServerState)
 	float Throttle;
-	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_ServerState)
 	float SteeringThrow;
 
 	//The force applied to the car when the throttle is fully down. (N)
@@ -85,7 +85,7 @@ private:
 	FVector GetAirResistance();
 	FVector GetRollResistance();
 	void UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult);
-	void ApplyRotation(float DeltaTime);
+	void ApplyRotation(float DeltaTime, float SteeringThrow);
 
 	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
 	FGoKartState ServerState;

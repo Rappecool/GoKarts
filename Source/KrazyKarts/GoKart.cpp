@@ -38,8 +38,22 @@ void AGoKart::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifeti
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AGoKart, ServerState);
-	DOREPLIFETIME(AGoKart, Throttle);
-	DOREPLIFETIME(AGoKart, SteeringThrow);
+}
+
+void AGoKart::SimulateMove(FGoKartMove Move)
+{
+	FVector ForwardForce = GetActorForwardVector() * MaxDrivingForce * Move.Throttle;
+
+	ForwardForce += GetAirResistance();
+	ForwardForce += GetRollResistance();
+	FVector Acceleration = ForwardForce / Mass;
+
+	Velocity += Acceleration * Move.DeltaTime;
+	ApplyRotation(Move.DeltaTime, Move.SteeringThrow);
+
+	FHitResult HitResult;
+
+	UpdateLocationFromVelocity(Move.DeltaTime, HitResult);
 }
 
 FString GetEnumText(ENetRole Role)
@@ -72,33 +86,13 @@ void AGoKart::Tick(float DeltaTime)
 		Move.Throttle = Throttle;
 		//TODO: Set Move.Time;
 		Server_SendMove(Move);
+
+		if (!HasAuthority())
+		{
+			SimulateMove(Move);
+		}
 	}
 
-
-	FVector ForwardForce = GetActorForwardVector() * MaxDrivingForce * Throttle;
-
-	ForwardForce += GetAirResistance();
-	ForwardForce += GetRollResistance();
-	FVector Acceleration = ForwardForce / Mass;
-
-	Velocity += Acceleration * DeltaTime;
-	ApplyRotation(DeltaTime);
-
-	FHitResult HitResult;
-
-	UpdateLocationFromVelocity(DeltaTime, HitResult);
-
-	if (HasAuthority())
-	{
-		ServerState.Transform = GetActorTransform();
-		ServerState.Velocity = Velocity;
-		//TODO: Add ServerState.LastMove.
-	}
-
-	else
-	{
-
-	}
 
 	DrawDebugString(GetWorld(), FVector(0, 0, 100), GetEnumText(Role), this, FColor::White, DeltaTime);
 }
@@ -143,7 +137,7 @@ FVector AGoKart::GetRollResistance()
 	return -Velocity.GetSafeNormal() * RollingResistanceCoefficient * NormalForce;
 }
 
-void AGoKart::ApplyRotation(float DeltaTime)
+void AGoKart::ApplyRotation(float DeltaTime, float SteeringThrow)
 {
 	float DeltaLocation = FVector::DotProduct(GetActorForwardVector(), Velocity) * DeltaTime;
 	float RotationAngle = DeltaLocation / MinTurningRadius * SteeringThrow;
@@ -166,8 +160,12 @@ void AGoKart::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AGoKart::Server_SendMove_Implementation(FGoKartMove Move)
 {
-	Throttle = Move.Throttle;
-	SteeringThrow = Move.SteeringThrow;
+	SimulateMove(Move);
+
+	ServerState.LastMove = Move;
+	ServerState.Transform = GetActorTransform();
+	ServerState.Velocity = Velocity;
+	//TODO: Add ServerState.LastMove.
 }
 
 bool AGoKart::Server_SendMove_Validate(FGoKartMove Move)
