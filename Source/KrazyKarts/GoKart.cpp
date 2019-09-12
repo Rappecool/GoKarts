@@ -39,7 +39,7 @@ void AGoKart::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifeti
 	DOREPLIFETIME(AGoKart, ServerState);
 }
 
-void AGoKart::SimulateMove(FGoKartMove Move)
+void AGoKart::SimulateMove(const FGoKartMove& Move)
 {
 	FVector ForwardForce = GetActorForwardVector() * MaxDrivingForce * Move.Throttle;
 
@@ -102,21 +102,28 @@ void AGoKart::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-		//If is local player, Create Move Struct to be sent to server AND used for local simulation.
-	if (IsLocallyControlled())
+	if (Role == ROLE_AutonomousProxy)
 	{
 		FGoKartMove Move = CreateMove(DeltaTime);
-
-		if (!HasAuthority())
-		{
-			UnacknowledgedMoves.Add(Move);
-			UE_LOG(LogTemp, Warning, TEXT("Queue Length:%d"), UnacknowledgedMoves.Num());
-		}
-			//Moves client on server, client calls Server_SendMove -> Makes RPC to Server_SendMove_Implementation on server. TODO: add HasAuthority?
-		Server_SendMove(Move);
-		
-			//If we're not server, simulate move locally. (As to not simulate move on server twice.)
+		//simulate move locally. (As to not simulate move on server twice.)
 		SimulateMove(Move);
+		UnacknowledgedMoves.Add(Move);
+		//Moves client on server, client calls Server_SendMove -> Makes RPC to Server_SendMove_Implementation on server. TODO: add HasAuthority?
+		Server_SendMove(Move);	
+	}
+
+	//We are the client, simulated are other clients/server in game.
+	if (Role == ROLE_SimulatedProxy)
+	{
+		SimulateMove(ServerState.LastMove);
+	}
+
+	//TODO: Move GetRemoteRole out of Tick.
+	//We are the server and in control of the pawn.
+	if (Role == ROLE_Authority && GetRemoteRole() == ROLE_SimulatedProxy)
+	{
+		FGoKartMove Move = CreateMove(DeltaTime);
+		Server_SendMove(Move);
 	}
 
 	DrawDebugString(GetWorld(), FVector(0, 0, 100), GetEnumText(Role), this, FColor::White, DeltaTime);
@@ -124,10 +131,18 @@ void AGoKart::Tick(float DeltaTime)
 
 void AGoKart::OnRep_ServerState()
 {
+		//Sets/overrides values from client on server.
 	SetActorTransform(ServerState.Transform);
 	Velocity = ServerState.Velocity;
 
+	//Clears Moves that have been acknowledged.
 	ClearAcknowledgedMoves(ServerState.LastMove);
+
+		//all moves that haven't been acknowledged, simulate.
+	for (const FGoKartMove& Move : UnacknowledgedMoves)
+	{
+		SimulateMove(Move);
+	}
 }
 
 void AGoKart::UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult)

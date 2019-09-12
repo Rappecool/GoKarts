@@ -91,7 +91,8 @@ private:
 	UFUNCTION()
 	void OnRep_ServerState();
 
-	void SimulateMove(FGoKartMove Move);
+	//Simulates by reference instead of copying each time.
+	void SimulateMove(const FGoKartMove& Move);
 	FGoKartMove CreateMove(float DeltaTime);
 	void ClearAcknowledgedMoves(FGoKartMove LastMove);
 
