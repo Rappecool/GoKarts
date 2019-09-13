@@ -8,4 +8,5 @@ AKrazyKartsGameMode::AKrazyKartsGameMode()
 {
 	DefaultPawnClass = AKrazyKartsPawn::StaticClass();
 	HUDClass = AKrazyKartsHud::StaticClass();
+	
 }
