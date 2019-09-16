@@ -33,14 +33,23 @@ private:
 	class UGoKartMovementComponent* MovementComponent;
 
 	TArray<FGoKartMove> UnacknowledgedMoves;
+
+	float ClientTimeSinceUpdate;
+	float ClientTimeBetweenLastUpdates;
+	FVector ClientStartLocation;
+
 	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
 	FGoKartState ServerState;
 
 	void ClearAcknowledgedMoves(FGoKartMove LastMove);
 	void UpdateServerState(const FGoKartMove& Move);
+	void ClientTick(float DeltaTime);
 
 	UFUNCTION()
 	void OnRep_ServerState();
+	void OnRep_SimulatedProxy_ServerState();
+	void OnRep_Autonomous_ServerState();
+
 
 protected:
 	// Called when the game starts
@@ -51,6 +60,7 @@ public:
 	UGoKartMovementReplicator();
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendMove(FGoKartMove Move);
 };

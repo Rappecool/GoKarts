@@ -42,10 +42,10 @@ void UGoKartMovementReplicator::TickComponent(float DeltaTime, ELevelTick TickTy
 		Server_SendMove(LastMove);
 	}
 
-	//We are the client, simulated are other clients/server in game.
+	//We are other clients, simulating on client.
 	if (GetOwner()->Role == ROLE_SimulatedProxy)
 	{
-		MovementComponent->SimulateMove(ServerState.LastMove);
+		ClientTick(DeltaTime);
 	}
 
 	//TODO: Move GetRemoteRole out of Tick.
@@ -54,6 +54,26 @@ void UGoKartMovementReplicator::TickComponent(float DeltaTime, ELevelTick TickTy
 	{
 		UpdateServerState(LastMove);
 	}
+}
+
+void UGoKartMovementReplicator::ClientTick(float DeltaTime)
+{
+	ClientTimeSinceUpdate += DeltaTime;
+
+		//Need to have atleast 2 updates before we start Lerping.
+	//Compare to const small float since comparing float to 0 can be inaccurate. Since floating point numbers are "floating".
+	if (ClientTimeBetweenLastUpdates < KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	FVector TargetLocation = ServerState.Transform.GetLocation();
+	float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdates;
+	FVector StartLocation = ClientStartLocation;
+
+	FVector NewLocation = FMath::LerpStable(StartLocation, TargetLocation, LerpRatio);
+
+	GetOwner()->SetActorLocation(NewLocation);
 }
 
 void UGoKartMovementReplicator::UpdateServerState(const FGoKartMove& Move)
@@ -73,6 +93,33 @@ void UGoKartMovementReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeProp
 
 void UGoKartMovementReplicator::OnRep_ServerState()
 {
+	switch (GetOwnerRole())
+	{
+	case ROLE_AutonomousProxy:
+		OnRep_Autonomous_ServerState();
+		break;
+
+	case ROLE_SimulatedProxy:
+		OnRep_SimulatedProxy_ServerState();
+		break;
+
+	default:
+		break;
+	}
+}
+
+void UGoKartMovementReplicator::OnRep_SimulatedProxy_ServerState()
+{
+		//We are other clients simulating on client.
+	ClientTimeBetweenLastUpdates = ClientTimeSinceUpdate;
+	ClientTimeSinceUpdate = 0;
+
+	ClientStartLocation = GetOwner()->GetActorLocation();
+}
+
+void UGoKartMovementReplicator::OnRep_Autonomous_ServerState()
+{
+		//We are Client.
 	if (!ensure(MovementComponent != nullptr))
 		return;
 

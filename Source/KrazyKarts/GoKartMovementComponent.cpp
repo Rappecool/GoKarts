@@ -9,19 +9,15 @@ UGoKartMovementComponent::UGoKartMovementComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
-
 	//Conversion from UE units(cm) to meters.
 	AccelerationDueToGravity = -GetWorld()->GetDefaultGravityZ() / 100;
 }
-
 
 // Called when the game starts
 void UGoKartMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
 }
-
 
 // Called every frame
 void UGoKartMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -35,7 +31,6 @@ void UGoKartMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		//simulate move locally. (As to not simulate move on server twice.)	
 		SimulateMove(LastMove);
 	}
-
 }
 
 FGoKartMove UGoKartMovementComponent::CreateMove(float DeltaTime)
