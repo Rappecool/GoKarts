@@ -41,6 +41,8 @@ private:
 	float Throttle;
 	float SteeringThrow;
 
+	FGoKartMove LastMove;
+
 	//The force applied to the car when the throttle is fully down. (N)
 	UPROPERTY(EditAnywhere)
 	float MaxDrivingForce = 10000;
@@ -58,25 +60,25 @@ private:
 
 	FVector GetAirResistance();
 	FVector GetRollResistance();
+
+	struct FGoKartMove CreateMove(float DeltaTime);
 	void UpdateLocationFromVelocity(float DeltaTime, FHitResult &HitResult);
 	void ApplyRotation(float DeltaTime, float SteeringThrow);
-
-public:	
-	// Sets default values for this component's properties
-	UGoKartMovementComponent();
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
 public:	
+	// Sets default values for this component's properties
+	UGoKartMovementComponent();
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
-	struct FGoKartMove CreateMove(float DeltaTime);
 	//Simulates by reference instead of copying each time.
 	void SimulateMove(const struct FGoKartMove& Move);
+
 	FVector GetVelocity() const;
+	FGoKartMove GetLastMove() { return LastMove; };
 
 	void SetVelocity(FVector Value);
 	void SetThrottle(float Value);

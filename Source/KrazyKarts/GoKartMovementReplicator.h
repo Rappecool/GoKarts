@@ -37,6 +37,8 @@ private:
 	FGoKartState ServerState;
 
 	void ClearAcknowledgedMoves(FGoKartMove LastMove);
+	void UpdateServerState(const FGoKartMove& Move);
+
 	UFUNCTION()
 	void OnRep_ServerState();
 
@@ -51,8 +53,4 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendMove(FGoKartMove Move);
-	TArray<FGoKartMove> GetUnacknowledgedMoves()const;
-
-	FGoKartState GetServerState()const;
-		
 };

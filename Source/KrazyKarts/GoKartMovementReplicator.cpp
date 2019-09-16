@@ -16,7 +16,6 @@ UGoKartMovementReplicator::UGoKartMovementReplicator()
 
 }
 
-
 // Called when the game starts
 void UGoKartMovementReplicator::BeginPlay()
 {
@@ -34,40 +33,35 @@ void UGoKartMovementReplicator::TickComponent(float DeltaTime, ELevelTick TickTy
 	if (!ensure(MovementComponent != nullptr))
 		return;
 
-	//TODO: use reference to movementcomponent to call.
+	FGoKartMove LastMove = MovementComponent->GetLastMove();
+
 	if (GetOwner()->Role == ROLE_AutonomousProxy)
 	{
-		FGoKartMove Move = MovementComponent->CreateMove(DeltaTime);
-		//simulate move locally. (As to not simulate move on server twice.)
-		MovementComponent->SimulateMove(Move);
-		GetUnacknowledgedMoves().Add(Move);
+		UnacknowledgedMoves.Add(LastMove);
 		//Moves client on server, client calls Server_SendMove -> Makes RPC to Server_SendMove_Implementation on server. TODO: add HasAuthority?
-		Server_SendMove(Move);
+		Server_SendMove(LastMove);
 	}
 
 	//We are the client, simulated are other clients/server in game.
 	if (GetOwner()->Role == ROLE_SimulatedProxy)
 	{
-		MovementComponent->SimulateMove(GetServerState().LastMove);
+		MovementComponent->SimulateMove(ServerState.LastMove);
 	}
 
 	//TODO: Move GetRemoteRole out of Tick.
 	//We are the server and in control of the pawn.
 	if (GetOwner()->Role == ROLE_Authority && GetOwner()->GetRemoteRole() == ROLE_SimulatedProxy)
 	{
-		FGoKartMove Move = MovementComponent->CreateMove(DeltaTime);
-		Server_SendMove(Move);
+		UpdateServerState(LastMove);
 	}
 }
 
-TArray <FGoKartMove> UGoKartMovementReplicator::GetUnacknowledgedMoves() const
+void UGoKartMovementReplicator::UpdateServerState(const FGoKartMove& Move)
 {
-	return UnacknowledgedMoves;
-}
 
-FGoKartState UGoKartMovementReplicator::GetServerState() const
-{
-	return ServerState;
+	ServerState.LastMove = Move;
+	ServerState.Transform = GetOwner()->GetActorTransform();
+	ServerState.Velocity = MovementComponent->GetVelocity();
 }
 
 void UGoKartMovementReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -102,19 +96,13 @@ void UGoKartMovementReplicator::Server_SendMove_Implementation(FGoKartMove Move)
 		return;
 
 	MovementComponent->SimulateMove(Move);
-
-	ServerState.LastMove = Move;
-
-	ServerState.Transform = GetOwner()->GetActorTransform();
-	ServerState.Velocity = MovementComponent->GetVelocity();
+	UpdateServerState(Move);
 }
 
 bool UGoKartMovementReplicator::Server_SendMove_Validate(FGoKartMove Move)
 {
 	if (!ensure(MovementComponent != nullptr))
 		return false;
-
-
 	//TODO: Make better validation.
 	return true;
 }

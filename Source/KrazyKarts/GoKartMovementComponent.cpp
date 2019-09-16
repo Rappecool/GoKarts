@@ -28,7 +28,14 @@ void UGoKartMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+	//If we're not server, simulate movement. OR if we are server, and other player is SimulatedProxy.
+	if (GetOwner()->Role == ROLE_AutonomousProxy || GetOwner()->GetRemoteRole() == ROLE_SimulatedProxy)
+	{
+		LastMove = CreateMove(DeltaTime);
+		//simulate move locally. (As to not simulate move on server twice.)	
+		SimulateMove(LastMove);
+	}
+
 }
 
 FGoKartMove UGoKartMovementComponent::CreateMove(float DeltaTime)
