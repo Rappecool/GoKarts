@@ -73,38 +73,58 @@ void UGoKartMovementReplicator::ClientTick(float DeltaTime)
 	if (!ensure(MovementComponent != nullptr))
 		return;
 
-		//Lerp
-	FVector TargetLocation = ServerState.Transform.GetLocation();
 	float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdates;
-	FVector StartLocation = ClientStartTransform.GetLocation();
+	FHermiteCubicSpline Spline = CreateCubicSpline();
 
-	FVector NewLocation = FMath::LerpStable(StartLocation, TargetLocation, LerpRatio);
+	InterpolateLocation(Spline, LerpRatio);
 
-	//GetOwner()->SetActorLocation(NewLocation);
+	InterpolateVelocity(Spline, LerpRatio);
 
-		//Slerp
+	InterpolateRotation(LerpRatio);
+}
+
+FHermiteCubicSpline UGoKartMovementReplicator::CreateCubicSpline()
+{
+	FHermiteCubicSpline Spline;
+
+	Spline.TargetLocation = ServerState.Transform.GetLocation();
+	Spline.StartLocation = ClientStartTransform.GetLocation();
+	Spline.StartDerivative = ClientStartVelocity * VelocityToDerivative();
+	Spline.TargetDerivative = ServerState.Velocity * VelocityToDerivative();
+
+	return Spline;
+}
+
+void UGoKartMovementReplicator::InterpolateLocation(const FHermiteCubicSpline &Spline, float LerpRatio)
+{
+	//CubicInterpolation
+	FVector NewCubicLocation = Spline.InterpolateLocation(LerpRatio);
+	GetOwner()->SetActorLocation(NewCubicLocation);
+}
+
+void UGoKartMovementReplicator::InterpolateVelocity(const FHermiteCubicSpline &Spline, float LerpRatio)
+{
+	FVector NewDerivative = Spline.InterpolateDerivative(LerpRatio);
+	FVector NewVelocity = NewDerivative / VelocityToDerivative();
+	MovementComponent->SetVelocity(NewVelocity);
+}
+
+void UGoKartMovementReplicator::InterpolateRotation(float LerpRatio)
+{
+	//Slerp
 	FQuat StartRotation = ClientStartTransform.GetRotation();
 	FQuat TargetRotation = ServerState.Transform.GetRotation();
 
 	FQuat NewRotation = FQuat::Slerp(StartRotation, TargetRotation, LerpRatio);
 
 	GetOwner()->SetActorRotation(NewRotation);
+}
 
-		//CubicInterpolation
-
+float UGoKartMovementReplicator::VelocityToDerivative()
+{
 	//*100 to convert from UE4 cm to Meters.
 	float VelocityToDerivative = ClientTimeBetweenLastUpdates * 100;
-
-	FVector StartDerivative = ClientStartVelocity * VelocityToDerivative;
-	FVector TargetDerivative = ServerState.Velocity * VelocityToDerivative;
-
-	FVector NewDerivative = FMath::CubicInterpDerivative(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio);
-	FVector NewVelocity = NewDerivative / VelocityToDerivative;
-	MovementComponent->SetVelocity(NewVelocity);
-
-	FVector NewCubicLocation = FMath::CubicInterp(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio);
-
-	GetOwner()->SetActorLocation(NewCubicLocation);
+	return VelocityToDerivative;
 }
 
 void UGoKartMovementReplicator::CubicInterpolation()
