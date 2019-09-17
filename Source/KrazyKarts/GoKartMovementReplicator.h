@@ -57,6 +57,9 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
 	FGoKartState ServerState;
 
+	UPROPERTY()
+	USceneComponent* MeshOffSetRoot;
+
 	void ClearAcknowledgedMoves(FGoKartMove LastMove);
 	void UpdateServerState(const FGoKartMove& Move);
 	void ClientTick(float DeltaTime);
@@ -68,13 +71,14 @@ private:
 
 	float VelocityToDerivative();
 
-	void CubicInterpolation();
+	UFUNCTION(BlueprintCallable)
+	void SetMeshOffsetRoot(USceneComponent* Root) { MeshOffSetRoot = Root; }
+	void SetMeshOffsetLocation();
 
 	UFUNCTION()
 	void OnRep_ServerState();
 	void OnRep_SimulatedProxy_ServerState();
 	void OnRep_Autonomous_ServerState();
-
 
 protected:
 	// Called when the game starts

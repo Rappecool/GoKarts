@@ -15,11 +15,6 @@ class KRAZYKARTS_API AGoKart : public APawn
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(VisibleAnywhere)
-	class UGoKartMovementComponent* MovementComponent;
-	UPROPERTY(VisibleAnywhere)
-	UGoKartMovementReplicator* MovementReplicator;
-
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 
@@ -29,6 +24,11 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UGoKartMovementComponent* MovementComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UGoKartMovementReplicator* MovementReplicator;
+
 	AGoKart();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

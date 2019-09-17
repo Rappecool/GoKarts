@@ -2,6 +2,7 @@
 
 #include "GoKartMovementReplicator.h"
 
+#include "GameFramework/Actor.h"
 #include "UnrealNetwork.h"
 
 // Sets default values for this component's properties
@@ -99,7 +100,10 @@ void UGoKartMovementReplicator::InterpolateLocation(const FHermiteCubicSpline &S
 {
 	//CubicInterpolation
 	FVector NewCubicLocation = Spline.InterpolateLocation(LerpRatio);
-	GetOwner()->SetActorLocation(NewCubicLocation);
+	if (MeshOffSetRoot != nullptr)
+	{
+		MeshOffSetRoot->SetWorldLocation(NewCubicLocation);
+	}
 }
 
 void UGoKartMovementReplicator::InterpolateVelocity(const FHermiteCubicSpline &Spline, float LerpRatio)
@@ -117,7 +121,10 @@ void UGoKartMovementReplicator::InterpolateRotation(float LerpRatio)
 
 	FQuat NewRotation = FQuat::Slerp(StartRotation, TargetRotation, LerpRatio);
 
-	GetOwner()->SetActorRotation(NewRotation);
+	if (MeshOffSetRoot != nullptr)
+	{
+		MeshOffSetRoot->SetWorldRotation(NewRotation);
+	}
 }
 
 float UGoKartMovementReplicator::VelocityToDerivative()
@@ -125,24 +132,6 @@ float UGoKartMovementReplicator::VelocityToDerivative()
 	//*100 to convert from UE4 cm to Meters.
 	float VelocityToDerivative = ClientTimeBetweenLastUpdates * 100;
 	return VelocityToDerivative;
-}
-
-void UGoKartMovementReplicator::CubicInterpolation()
-{
-	/*
-	Slope = Derivative;
-
-	= DeltaLocationn /DeltaAlpha.
-
-	Velocity = Deltalocation /DeltaTime.
-	DeltaAlpha = DeltaTime / Timebetweenlastupdates.
-	
-	Derivative = Velocity * TimeBetweenLastUpdates
-	
-	*/
-
-	
-
 }
 
 void UGoKartMovementReplicator::UpdateServerState(const FGoKartMove& Move)
@@ -158,6 +147,11 @@ void UGoKartMovementReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeProp
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UGoKartMovementReplicator, ServerState);
+}
+
+void UGoKartMovementReplicator::SetMeshOffsetLocation()
+{
+	
 }
 
 void UGoKartMovementReplicator::OnRep_ServerState()
@@ -186,8 +180,15 @@ void UGoKartMovementReplicator::OnRep_SimulatedProxy_ServerState()
 	ClientTimeBetweenLastUpdates = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0;
 
-	ClientStartTransform = GetOwner()->GetActorTransform();
+	if (MeshOffSetRoot != nullptr)
+	{
+		ClientStartTransform.SetLocation(MeshOffSetRoot->GetComponentLocation());
+		ClientStartTransform.SetRotation(MeshOffSetRoot->GetComponentQuat());
+	}
+
 	ClientStartVelocity = MovementComponent->GetVelocity();
+
+	GetOwner()->SetActorTransform(ServerState.Transform);
 }
 
 void UGoKartMovementReplicator::OnRep_Autonomous_ServerState()
