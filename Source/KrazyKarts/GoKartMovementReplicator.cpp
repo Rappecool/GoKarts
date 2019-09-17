@@ -62,8 +62,6 @@ void UGoKartMovementReplicator::ClientTick(float DeltaTime)
 
 		//TODO: Break down Lerp and Slerp into separate functions.
 
-		//Lerp
-
 		//Need to have atleast 2 updates before we start Lerping.
 	//Compare to const small float since comparing float to 0 can be inaccurate. Since floating point numbers are "floating".
 	if (ClientTimeBetweenLastUpdates < KINDA_SMALL_NUMBER)
@@ -71,22 +69,59 @@ void UGoKartMovementReplicator::ClientTick(float DeltaTime)
 		return;
 	}
 
+		//TODO: Move and do once.
+	if (!ensure(MovementComponent != nullptr))
+		return;
+
+		//Lerp
 	FVector TargetLocation = ServerState.Transform.GetLocation();
 	float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdates;
 	FVector StartLocation = ClientStartTransform.GetLocation();
 
 	FVector NewLocation = FMath::LerpStable(StartLocation, TargetLocation, LerpRatio);
 
-	GetOwner()->SetActorLocation(NewLocation);
+	//GetOwner()->SetActorLocation(NewLocation);
 
 		//Slerp
-	
 	FQuat StartRotation = ClientStartTransform.GetRotation();
 	FQuat TargetRotation = ServerState.Transform.GetRotation();
 
 	FQuat NewRotation = FQuat::Slerp(StartRotation, TargetRotation, LerpRatio);
 
 	GetOwner()->SetActorRotation(NewRotation);
+
+		//CubicInterpolation
+
+	//*100 to convert from UE4 cm to Meters.
+	float VelocityToDerivative = ClientTimeBetweenLastUpdates * 100;
+
+	FVector StartDerivative = ClientStartVelocity * VelocityToDerivative;
+	FVector TargetDerivative = ServerState.Velocity * VelocityToDerivative;
+
+	FVector NewDerivative = FMath::CubicInterpDerivative(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio);
+	FVector NewVelocity = NewDerivative / VelocityToDerivative;
+	MovementComponent->SetVelocity(NewVelocity);
+
+	FVector NewCubicLocation = FMath::CubicInterp(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio);
+
+	GetOwner()->SetActorLocation(NewCubicLocation);
+}
+
+void UGoKartMovementReplicator::CubicInterpolation()
+{
+	/*
+	Slope = Derivative;
+
+	= DeltaLocationn /DeltaAlpha.
+
+	Velocity = Deltalocation /DeltaTime.
+	DeltaAlpha = DeltaTime / Timebetweenlastupdates.
+	
+	Derivative = Velocity * TimeBetweenLastUpdates
+	
+	*/
+
+	
 
 }
 
@@ -124,11 +159,15 @@ void UGoKartMovementReplicator::OnRep_ServerState()
 
 void UGoKartMovementReplicator::OnRep_SimulatedProxy_ServerState()
 {
+	if (!ensure(MovementComponent!= nullptr))
+		return;
+
 		//We are other clients simulating on client.
 	ClientTimeBetweenLastUpdates = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0;
 
 	ClientStartTransform = GetOwner()->GetActorTransform();
+	ClientStartVelocity = MovementComponent->GetVelocity();
 }
 
 void UGoKartMovementReplicator::OnRep_Autonomous_ServerState()

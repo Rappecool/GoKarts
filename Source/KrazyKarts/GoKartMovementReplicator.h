@@ -37,6 +37,7 @@ private:
 	float ClientTimeSinceUpdate;
 	float ClientTimeBetweenLastUpdates;
 	FTransform ClientStartTransform;
+	FVector ClientStartVelocity;
 
 	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
 	FGoKartState ServerState;
@@ -44,6 +45,8 @@ private:
 	void ClearAcknowledgedMoves(FGoKartMove LastMove);
 	void UpdateServerState(const FGoKartMove& Move);
 	void ClientTick(float DeltaTime);
+
+	void CubicInterpolation();
 
 	UFUNCTION()
 	void OnRep_ServerState();
