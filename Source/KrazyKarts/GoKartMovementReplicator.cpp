@@ -60,6 +60,10 @@ void UGoKartMovementReplicator::ClientTick(float DeltaTime)
 {
 	ClientTimeSinceUpdate += DeltaTime;
 
+		//TODO: Break down Lerp and Slerp into separate functions.
+
+		//Lerp
+
 		//Need to have atleast 2 updates before we start Lerping.
 	//Compare to const small float since comparing float to 0 can be inaccurate. Since floating point numbers are "floating".
 	if (ClientTimeBetweenLastUpdates < KINDA_SMALL_NUMBER)
@@ -69,11 +73,21 @@ void UGoKartMovementReplicator::ClientTick(float DeltaTime)
 
 	FVector TargetLocation = ServerState.Transform.GetLocation();
 	float LerpRatio = ClientTimeSinceUpdate / ClientTimeBetweenLastUpdates;
-	FVector StartLocation = ClientStartLocation;
+	FVector StartLocation = ClientStartTransform.GetLocation();
 
 	FVector NewLocation = FMath::LerpStable(StartLocation, TargetLocation, LerpRatio);
 
 	GetOwner()->SetActorLocation(NewLocation);
+
+		//Slerp
+	
+	FQuat StartRotation = ClientStartTransform.GetRotation();
+	FQuat TargetRotation = ServerState.Transform.GetRotation();
+
+	FQuat NewRotation = FQuat::Slerp(StartRotation, TargetRotation, LerpRatio);
+
+	GetOwner()->SetActorRotation(NewRotation);
+
 }
 
 void UGoKartMovementReplicator::UpdateServerState(const FGoKartMove& Move)
@@ -114,7 +128,7 @@ void UGoKartMovementReplicator::OnRep_SimulatedProxy_ServerState()
 	ClientTimeBetweenLastUpdates = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0;
 
-	ClientStartLocation = GetOwner()->GetActorLocation();
+	ClientStartTransform = GetOwner()->GetActorTransform();
 }
 
 void UGoKartMovementReplicator::OnRep_Autonomous_ServerState()
@@ -123,7 +137,7 @@ void UGoKartMovementReplicator::OnRep_Autonomous_ServerState()
 	if (!ensure(MovementComponent != nullptr))
 		return;
 
-	//Sets/overrides values from client on server.
+	//Sets/overrides values from server on client.
 	GetOwner()->SetActorTransform(ServerState.Transform);
 	MovementComponent->SetVelocity(ServerState.Velocity);
 

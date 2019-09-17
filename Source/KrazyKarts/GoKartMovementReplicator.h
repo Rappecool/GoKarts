@@ -36,7 +36,7 @@ private:
 
 	float ClientTimeSinceUpdate;
 	float ClientTimeBetweenLastUpdates;
-	FVector ClientStartLocation;
+	FTransform ClientStartTransform;
 
 	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
 	FGoKartState ServerState;
