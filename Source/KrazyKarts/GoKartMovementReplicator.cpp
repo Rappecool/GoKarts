@@ -13,8 +13,6 @@ UGoKartMovementReplicator::UGoKartMovementReplicator()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	SetIsReplicated(true);
-
-
 }
 
 // Called when the game starts
@@ -39,7 +37,7 @@ void UGoKartMovementReplicator::TickComponent(float DeltaTime, ELevelTick TickTy
 	if (GetOwner()->Role == ROLE_AutonomousProxy)
 	{
 		UnacknowledgedMoves.Add(LastMove);
-		//Moves client on server, client calls Server_SendMove -> Makes RPC to Server_SendMove_Implementation on server. TODO: add HasAuthority?
+		//Moves client on server, client calls Server_SendMove -> Makes RPC to Server_SendMove_Implementation on server.
 		Server_SendMove(LastMove);
 	}
 
@@ -49,7 +47,6 @@ void UGoKartMovementReplicator::TickComponent(float DeltaTime, ELevelTick TickTy
 		ClientTick(DeltaTime);
 	}
 
-	//TODO: Move GetRemoteRole out of Tick.
 	//We are the server and in control of the pawn.
 	if (GetOwner()->Role == ROLE_Authority && GetOwner()->GetRemoteRole() == ROLE_SimulatedProxy)
 	{
@@ -60,8 +57,6 @@ void UGoKartMovementReplicator::TickComponent(float DeltaTime, ELevelTick TickTy
 void UGoKartMovementReplicator::ClientTick(float DeltaTime)
 {
 	ClientTimeSinceUpdate += DeltaTime;
-
-		//TODO: Break down Lerp and Slerp into separate functions.
 
 		//Need to have atleast 2 updates before we start Lerping.
 	//Compare to const small float since comparing float to 0 can be inaccurate. Since floating point numbers are "floating".
@@ -136,7 +131,6 @@ float UGoKartMovementReplicator::VelocityToDerivative()
 
 void UGoKartMovementReplicator::UpdateServerState(const FGoKartMove& Move)
 {
-
 	ServerState.LastMove = Move;
 	ServerState.Transform = GetOwner()->GetActorTransform();
 	ServerState.Velocity = MovementComponent->GetVelocity();
@@ -147,11 +141,6 @@ void UGoKartMovementReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeProp
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UGoKartMovementReplicator, ServerState);
-}
-
-void UGoKartMovementReplicator::SetMeshOffsetLocation()
-{
-	
 }
 
 void UGoKartMovementReplicator::OnRep_ServerState()
@@ -173,7 +162,7 @@ void UGoKartMovementReplicator::OnRep_ServerState()
 
 void UGoKartMovementReplicator::OnRep_SimulatedProxy_ServerState()
 {
-	if (!ensure(MovementComponent!= nullptr))
+	if (!ensure(MovementComponent != nullptr))
 		return;
 
 		//We are other clients simulating on client.
@@ -216,16 +205,28 @@ void UGoKartMovementReplicator::Server_SendMove_Implementation(FGoKartMove Move)
 	if (!ensure(MovementComponent != nullptr))
 		return;
 
+	ClientSimulatedTime += Move.DeltaTime;
 	MovementComponent->SimulateMove(Move);
 	UpdateServerState(Move);
 }
 
 bool UGoKartMovementReplicator::Server_SendMove_Validate(FGoKartMove Move)
 {
-	if (!ensure(MovementComponent != nullptr))
+	float ProposedTime = ClientSimulatedTime + Move.DeltaTime;
+
+	bool ClientRunningAhead =  ProposedTime > GetWorld()->TimeSeconds;
+	if (ClientRunningAhead)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Client is running too fast!"));
 		return false;
-	//TODO: Make better validation.
-	return true;
+	}
+
+	if (!Move.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Received invalid move."));
+		return false;
+	}
+		return true;
 }
 
 void UGoKartMovementReplicator::ClearAcknowledgedMoves(FGoKartMove LastMove)

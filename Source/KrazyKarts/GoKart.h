@@ -25,7 +25,7 @@ protected:
 
 public:	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	class UGoKartMovementComponent* MovementComponent;
+	UGoKartMovementComponent* MovementComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UGoKartMovementReplicator* MovementReplicator;
 

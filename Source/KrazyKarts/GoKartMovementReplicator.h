@@ -51,6 +51,8 @@ private:
 
 	float ClientTimeSinceUpdate;
 	float ClientTimeBetweenLastUpdates;
+	float ClientSimulatedTime;
+
 	FTransform ClientStartTransform;
 	FVector ClientStartVelocity;
 
@@ -73,7 +75,6 @@ private:
 
 	UFUNCTION(BlueprintCallable)
 	void SetMeshOffsetRoot(USceneComponent* Root) { MeshOffSetRoot = Root; }
-	void SetMeshOffsetLocation();
 
 	UFUNCTION()
 	void OnRep_ServerState();
